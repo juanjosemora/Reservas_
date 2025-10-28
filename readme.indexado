@@ -1,0 +1,432 @@
+Reserva_Viajes — Entregables 
+
+Autor: Juan Bocanegración alejandro , Diagrama de Casos de Uso y Guía de indexado / documentación del código. 
+
+ 
+
+1. Diagrama Entidad-Relación (ERD) 
+
+Entidades principales (resumen) 
+
+users (Usuarios) 
+
+user_id (PK) 
+
+nombre 
+
+apellido 
+
+email (unique) 
+
+password_hash 
+
+telefono 
+
+role_id (FK) 
+
+created_at 
+
+updated_at 
+
+roles 
+
+role_id (PK) 
+
+nombre (Admin, Empleado, Cliente) 
+
+destinations (Destinos) 
+
+destination_id (PK) 
+
+nombre 
+
+pais 
+
+ciudad 
+
+descripcion 
+
+imagen_url 
+
+trips (Paquetes / Viajes) 
+
+trip_id (PK) 
+
+destination_id (FK) 
+
+titulo 
+
+descripcion 
+
+fecha_inicio 
+
+fecha_fin 
+
+precio_base 
+
+cupos_totales 
+
+cupos_disponibles 
+
+created_at 
+
+reservations (Reservas) 
+
+reservation_id (PK) 
+
+trip_id (FK) 
+
+user_id (FK) -- cliente 
+
+fecha_reserva 
+
+cantidad_personas 
+
+estado (pendiente, confirmada, cancelada) 
+
+total 
+
+payments (Pagos) 
+
+payment_id (PK) 
+
+reservation_id (FK) 
+
+metodo (tarjeta, transferencia) 
+
+monto 
+
+fecha_pago 
+
+status (pagado, pendiente, reembolsado) 
+
+employees (opcional: datos específicos del empleado) 
+
+employee_id (PK) 
+
+user_id (FK) 
+
+puesto 
+
+fecha_ingreso 
+
+reviews (Valoraciones) 
+
+review_id (PK) 
+
+trip_id (FK) 
+
+user_id (FK) 
+
+puntuacion (1-5) 
+
+comentario 
+
+created_at 
+
+Relación y cardinalidades (texto) 
+
+Un role tiene muchos users (1:N). 
+
+Un destination puede tener muchos trips (1:N). 
+
+Un trip puede tener muchas reservations (1:N). 
+
+Un user (cliente) puede tener muchas reservas (1:N). 
+
+Una reservation tiene uno o cero payment(s) (1:1 habitual, o 1:N si soporta pagos parciales). 
+
+Un trip puede tener muchas reviews; un user puede dejar muchas reviews (N:1 por side). 
+
+ERD (diagrama ASCII simplificado) 
+
+[roles] 1---N [users] 1---N [reservations] N---1 [trips] N---1 [destinations] 
+                 |                          | 
+                 |                          N 
+                 |                          | 
+                 +---1 [reviews]            +---1 [payments] 
+ 
+
+Y con campos clave (abreviado): 
+
+roles(role_id, nombre) 
+users(user_id, nombre, email, password_hash, role_id) 
+destinations(destination_id, nombre, pais, ciudad) 
+trips(trip_id, destination_id, titulo, fecha_inicio, fecha_fin, precio_base, cupos_disponibles) 
+reservations(reservation_id, trip_id, user_id, fecha_reserva, cantidad_personas, estado, total) 
+payments(payment_id, reservation_id, metodo, monto, fecha_pago, status) 
+reviews(review_id, trip_id, user_id, puntuacion, comentario) 
+ 
+
+Notas de diseño: 
+
+Para simplificar, usuarios con role = Cliente / Empleado / Admin comparten tabla users. Si en su negocio hay muchos campos especiales para empleados, usar employees separado con user_id FK. 
+
+Mantener precio_base en trips y calcular total en reservations (permite descuentos y tarifas variables). 
+
+Añadir tablas auxiliares si se gestionan hoteles, vuelos o paquetes compuestos (trip_items). 
+
+ 
+
+2. Mockups (wireframes) — descripción + ASCII 
+
+Voy a listar los mockups clave con los elementos necesarios. Estos son pensados como wireframes (puedes pasarlos a Figma/Adobe XD/FIGMA): 
+
+2.1 Página pública — Home 
+
+Elementos: header (logo, menú: Inicio, Destinos, Paquetes, Contacto, Login/Register), hero con búsqueda (origen, destino, fecha inicio, fecha fin, personas), listado de paquetes destacados, footer. 
+
++-------------------------------------------------------------+ 
+| LOGO  | Inicio | Destinos | Paquetes | Contacto | [Login]    | 
++-------------------------------------------------------------+ 
+| HERO: Buscador [Destino] [Fecha Inicio] [Fecha Fin] [Buscar]| 
++-------------------------------------------------------------+ 
+| Paquetes destacados: [Card][Card][Card]                     | 
+| Card: imagen | titulo | fechas | precio | [Ver] [Reservar]  | 
++-------------------------------------------------------------+ 
+| Footer: info, redes, contacto                               | 
++-------------------------------------------------------------+ 
+ 
+
+2.2 Página de detalle de paquete (trip) 
+
+Elementos: galería de imágenes, descripción, itinerario, precio, botón "Reservar ahora", calendario de fechas, valoraciones. 
+
++-----------------------------------------------------+ 
+| <Volver>  Título del Paquete  | Precio | [Reservar] | 
++-----------------------------------------------------+ 
+| [Imagen grande]  [Galería thumbnails]               | 
++-----------------------------------------------------+ 
+| Descripción larga                                   | 
+| Itinerario                                          | 
+| Cupos disponibles | Fecha inicio - Fecha fin         | 
++-----------------------------------------------------+ 
+| Comentarios / Reviews                               | 
++-----------------------------------------------------+ 
+ 
+
+2.3 Formulario de reserva (cliente) 
+
+Campos: selecciona fecha, cantidad personas, datos de pasajero (si aplica), resumen, pago. 
+
++-------------------------------+ 
+| Reservar: Título del viaje    | 
++-------------------------------+ 
+| Fecha: [select]               | 
+| Personas: [ + ] [1] [ - ]     | 
+| Nombre pasajero 1: [campo]    | 
+| Email contacto: [campo]       | 
+| Resumen: precio por persona x n 
+| [Continuar a pago]            | 
++-------------------------------+ 
+ 
+
+2.4 Login / Register 
+
+Login: email + password + recordar. Register: nombre, apellido, email, password, confirmar password, teléfono. 
+
+2.5 Panel Admin (dashboard) 
+
+Elementos: sidebar (Dashboard, Gestionar Paquetes, Reservas, Usuarios, Pagos, Reportes, Configuración), panel principal con KPIs (reservas hoy, ingresos, paquetes activos) y tabla rápida de últimas reservas. 
+
+2.6 Panel Empleado 
+
+Similar al admin pero con menos permisos: Ver/editar reservas, gestionar atención al cliente, confirmar pagos. 
+
+2.7 Panel Cliente 
+
+Ver reservas activas, historial, perfil, calificar viajecs. 
+
+ 
+
+3. Mapa de navegación (estructura) 
+
+/ (Home) 
+ /destinos 
+   /destinos/{destination_id} 
+ /paquetes 
+   /paquetes/{trip_id} 
+     /paquetes/{trip_id}/reservar 
+ /login 
+ /register 
+ /contacto 
+ 
+/admin 
+ /admin/dashboard 
+ /admin/paquetes 
+   /admin/paquetes/crear 
+   /admin/paquetes/{trip_id}/editar 
+ /admin/reservas 
+ /admin/usuarios 
+ /admin/pagos 
+ /admin/reportes 
+ 
+/empleado 
+ /empleado/dashboard 
+ /empleado/reservas 
+ /empleado/confirmar-pago 
+ 
+/cliente 
+ /cliente/mis-reservas 
+ /cliente/perfil 
+ /cliente/reservas/{reservation_id} 
+ 
+/api 
+ /api/login 
+ /api/register 
+ /api/trips (GET) 
+ /api/trips/{id} (GET) 
+ /api/reservations (POST) 
+ /api/payments (POST) 
+ 
+
+Notas: usar rutas RESTful y separar interfaz pública de paneles con middleware de autenticación y autorización. 
+
+ 
+
+4. Diagrama de Casos de Uso 
+
+Actores 
+
+Administrador 
+
+Empleado 
+
+Cliente (Usuario autenticado) 
+
+Visitante (usuario no autenticado) 
+
+Casos de uso principales (lista) 
+
+Visitante: Ver catálogo de paquetes, ver detalle, registrarse, iniciar sesión, buscar paquetes. 
+
+Cliente: Reservar paquete, ver mis reservas, cancelar reserva, pagar reserva, calificar viaje, editar perfil. 
+
+Empleado: Ver reservas, confirmar/cancelar reservas, gestionar pagos, asistir cliente. 
+
+Administrador: CRUD paquetes (crear/editar/eliminar), gestionar usuarios, ver reportes (ventas, ocupación), gestionar destinos y parámetros del sistema. 
+
+Diagrama ASCII (sencillo) 
+
+[Visitante]      [Cliente]       [Empleado]       [Administrador] 
+    |               |                |                  | 
+    |-- Ver Paquetes|-- Reservar ----|                  | 
+    |-- Registrarse |-- Pagar        |-- Confirmar Pago-|-- Gestionar Paquetes 
+    |               |-- Cancelar     |-- Ver Reservas   |-- Ver Reportes 
+    |               |-- Calificar    |                  |-- Gestionar Usuarios 
+ 
+
+ 
+
+5. Indexado y documentación del código (entregable) 
+
+Estructura de archivos recomendada 
+
+/ (raíz) 
+ index.php                 -> Página pública / home 
+ login.php 
+ register.php 
+ logout.php 
+ /admin/ 
+   index.php               -> admin dashboard 
+   trips.php               -> listar paquetes 
+   trip_edit.php           -> crear/editar paquete 
+   reservations.php 
+ /empleado/ 
+   index.php 
+   reservations.php 
+ /cliente/ 
+   index.php               -> mis reservas 
+   reservation_view.php 
+ /includes/ 
+   Database.php            -> conexión PDO 
+   Auth.php                -> funciones de autenticación 
+   functions.php           -> utilidades generales 
+ /models/ 
+   User.php 
+   Trip.php 
+   Reservation.php 
+   Payment.php 
+ /assets/ 
+   /css/ 
+   /js/ 
+   /images/ 
+ /api/ 
+   trips.php 
+   reservations.php 
+ 
+
+Archivo de indexado (sugerencia): CODE_INDEX.md 
+
+Ejemplo de contenido resumido del CODE_INDEX.md (debe generarse en la raíz): 
+
+# CODE_INDEX.md 
+ 
+## Descripción general 
+Pequeña guía de dónde encontrar las funcionalidades principales. 
+ 
+## Rutas y archivos clave 
+- Home: index.php 
+- Login/Register: login.php, register.php 
+- Admin dashboard: /admin/index.php 
+- Gestión de paquetes: /admin/trips.php, /admin/trip_edit.php 
+- Reservas (API): /api/reservations.php 
+ 
+## Modelos 
+- /models/Trip.php: funciones getAll(), getById($id), create($data), update($id, $data) 
+- /models/Reservation.php: createReservation(), getByUser($user_id), cancel($id) 
+ 
+## Configuración 
+- /includes/Database.php: modificar credenciales DB 
+ 
+
+Estilo de documentación (ejemplos) 
+
+1) Comentarios en PHP (PHPDoc) — ejemplo para una función en models/Trip.php 
+
+/** 
+* Obtiene un viaje por su ID. 
+* 
+* @param int $id ID del viaje 
+* @param PDO $pdo Conexión PDO 
+* @return array|null Datos del viaje o null si no existe 
+*/ 
+function getTripById(int $id, PDO $pdo): ?array { 
+   $stmt = $pdo->prepare('SELECT * FROM trips WHERE trip_id = :id'); 
+   $stmt->execute(['id' => $id]); 
+   $row = $stmt->fetch(PDO::FETCH_ASSOC); 
+   return $row ?: null; 
+} 
+ 
+
+2) Ejemplo de docblock para un controlador de reserva (/api/reservations.php) 
+
+/** 
+* Endpoint para crear reservas. 
+* Método: POST 
+* Parámetros esperados (JSON): { "trip_id": int, "user_id": int, "cantidad_personas": int } 
+* Respuestas: 
+*  - 201 Created -> { reservation_id } 
+*  - 400 Bad Request -> { error } 
+*/ 
+ 
+
+Documentación automática y herramientas 
+
+phpDocumentor: genera documentación en HTML desde bloques PHPDoc. 
+
+Doxygen (opcional): si se necesita documentación multi-lenguaje. 
+
+Swagger / OpenAPI: documentar los endpoints /api/* si se expone una API JSON. 
+
+Buenas prácticas para indexado de código 
+
+Mantener CODE_INDEX.md actualizado con cada funcionalidad nueva. 
+
+Comentarios claros al inicio de cada archivo describiendo su propósito. 
+
+Usar README.md en la raíz con instrucciones para desplegar (instalación, variables de entorno, creación de BD y seeder inicial). 
+
+Versionar con Git y usar mensajes de commit descriptivos. 
+
+ 
